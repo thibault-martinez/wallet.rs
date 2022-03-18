@@ -10,9 +10,9 @@ use std::{collections::HashMap, convert::TryInto, io::Read};
 /// Particiapation index
 pub(crate) const PARTICIPATE: &str = "PARTICIPATE";
 /// Event id for the shimmer staking
-pub(crate) const SHIMMER_EVENT_ID: &str = "048d3611a5cbcef9aea9e57e86584a94cc744a94866ac8cc9611fc60a2b561fc";
+pub(crate) const SHIMMER_EVENT_ID: &str = "73f7fd802ac8f39326fb67abc22b29f25a42e5b754160dc0a4e08dc5ac1246e1";
 /// Event id for the assembly staking
-pub(crate) const ASSEMBLY_EVENT_ID: &str = "5611acf43aa569da28040f45107ba4645db26391042d2c51f7ae8dbb706ff12c";
+pub(crate) const ASSEMBLY_EVENT_ID: &str = "1f35f20aa3a24dd984b6a736f3dbea4871b6212bb12e791a4e8dc411141ab75f";
 
 /// Possible participation event types
 pub enum ParticipationEventType {
