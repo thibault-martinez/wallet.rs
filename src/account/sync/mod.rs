@@ -1174,6 +1174,18 @@ fn get_balance_change_events(
             address.to_bech32(),
             balance_change
         );
+        log::debug!(
+            "[SYNC] balance change {}: old_balance: {}, new_balance: {}",
+            address.to_bech32(),
+            old_balance,
+            new_balance,
+        );
+        log::debug!(
+            "[SYNC] balance change {}: before_sync_outputs: {:?}, new outputs: {:?}",
+            address.to_bech32(),
+            before_sync_outputs,
+            outputs,
+        );
         balance_change_events.push(BalanceChangeEventData {
             address,
             balance_change,
