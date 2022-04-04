@@ -33,8 +33,9 @@ pub mod logger;
 
 // Expose for high level functions
 pub use account::operations::transfer::high_level::{
-    mint_native_token::NativeTokenOptions, mint_nfts::NftOptions, send_amount::AddressAndAmount,
-    send_micro_transaction::AddressMicroAmount, send_native_tokens::AddressNativeTokens, send_nft::AddressAndNftId,
+    burn_native_token::BurnNativeTokenOptions, mint_native_token::NativeTokenOptions, mint_nfts::NftOptions,
+    send_amount::AddressAndAmount, send_micro_transaction::AddressMicroAmount, send_native_tokens::AddressNativeTokens,
+    send_nft::AddressAndNftId,
 };
 
 pub use error::Error;
