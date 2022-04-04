@@ -25,7 +25,7 @@ use primitive_types::U256;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// Address and nft for `mint_native_token()`
+/// Address, token ID and amount for `burn_native_token()`
 #[serde(rename_all = "camelCase")]
 pub struct BurnNativeTokenOptions {
     /// Bech32 encoded address. Needs to be an account address. Default will use the
