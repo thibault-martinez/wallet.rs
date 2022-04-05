@@ -14,7 +14,8 @@ use iota_client::bee_message::{
     address::AliasAddress,
     output::{
         unlock_condition::{ImmutableAliasAddressUnlockCondition, UnlockCondition},
-        AliasOutputBuilder, FoundryOutputBuilder, NativeToken, Output, SimpleTokenScheme, TokenId, TokenScheme,
+        AliasOutputBuilder, FoundryId, FoundryOutputBuilder, NativeToken, Output, SimpleTokenScheme, TokenId,
+        TokenScheme,
     },
 };
 use primitive_types::U256;
@@ -64,11 +65,11 @@ impl AccountHandle {
             });
 
         let existing_alias_output_data = existing_alias_output_data
-            .ok_or_else(|| Error::BurningFailed("No alias output available".to_string()))?
+            .ok_or_else(|| Error::BurningFailed("Required alias output for token id not found".to_string()))?
             .clone();
 
         let existing_foundry_output = existing_foundry_output
-            .ok_or_else(|| Error::BurningFailed("No foundry output available".to_string()))?
+            .ok_or_else(|| Error::BurningFailed("Required foundry output for token id not found".to_string()))?
             .clone();
 
         drop(account);
@@ -119,5 +120,85 @@ impl AccountHandle {
         } else {
             unreachable!("We checked if it's an alias output before")
         }
+    }
+
+    /// Function to destroy foundry
+    pub async fn destroy_foundry(
+        &self,
+        foundry_id: FoundryId,
+        options: Option<TransferOptions>,
+    ) -> crate::Result<TransferResult> {
+        log::debug!("[TRANSFER] destroy_foundry");
+        let byte_cost_config = self.client.get_byte_cost_config().await?;
+
+        let alias_id = *foundry_id.alias_address().alias_id();
+        let account = self.read().await;
+
+        let mut existing_alias_output_data = None;
+        let mut existing_foundry_output = None;
+        account
+            .unspent_outputs()
+            .values()
+            .into_iter()
+            .filter(|output_data| match &output_data.output {
+                Output::Alias(output) => output.alias_id().or_from_output_id(output_data.output_id) == alias_id,
+                Output::Foundry(output) => output.id() == foundry_id,
+                _ => false,
+            })
+            .for_each(|output_data| match &output_data.output {
+                Output::Alias(_) => existing_alias_output_data = Some(output_data),
+                Output::Foundry(_) => existing_foundry_output = Some(output_data),
+                _ => unreachable!("We checked if it's an alias or foundry output before"),
+            });
+
+        let existing_alias_output_data = existing_alias_output_data
+            .ok_or_else(|| Error::BurningFailed("Required alias output for foundry not found".to_string()))?
+            .clone();
+
+        let existing_foundry_output = existing_foundry_output
+            .ok_or_else(|| Error::BurningFailed("Required foundry output not found".to_string()))?
+            .clone();
+
+        drop(account);
+
+        let custom_inputs = vec![existing_alias_output_data.output_id, existing_foundry_output.output_id];
+        let options = match options {
+            Some(mut options) => {
+                // TODO: Find out if there would be a reason to append to the user provided custom inputs?
+                options.custom_inputs.replace(custom_inputs);
+                Some(options)
+            }
+            None => Some(TransferOptions {
+                custom_inputs: Some(custom_inputs),
+                ..Default::default()
+            }),
+        };
+
+        let outputs = match existing_alias_output_data.output {
+            Output::Alias(alias_output) => {
+                // Create the new alias output with the same feature blocks, just updated state_index
+                let mut new_alias_output_builder =
+                    AliasOutputBuilder::new(existing_alias_output_data.amount, alias_id)?
+                        .with_state_index(alias_output.state_index() + 1)
+                        .with_foundry_counter(alias_output.foundry_counter());
+
+                for unlock_condition in alias_output.unlock_conditions().clone().into_iter() {
+                    new_alias_output_builder = new_alias_output_builder.add_unlock_condition(unlock_condition);
+                }
+
+                for feature_block in alias_output.feature_blocks().iter() {
+                    new_alias_output_builder = new_alias_output_builder.add_feature_block(feature_block.clone());
+                }
+                for immutable_feature_block in alias_output.immutable_feature_blocks().iter() {
+                    new_alias_output_builder =
+                        new_alias_output_builder.add_immutable_feature_block(immutable_feature_block.clone());
+                }
+
+                vec![Output::Alias(new_alias_output_builder.finish()?)]
+            }
+            _ => unreachable!("We checked if it's an alias output before"),
+        };
+
+        self.send(outputs, options).await
     }
 }
