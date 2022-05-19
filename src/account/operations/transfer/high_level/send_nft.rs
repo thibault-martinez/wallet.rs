@@ -54,6 +54,7 @@ impl AccountHandle {
         let unspent_outputs = self.list_unspent_outputs().await?;
         let mut outputs = Vec::new();
         let mut custom_inputs = Vec::new();
+
         for address_and_nft_id in addresses_nft_ids {
             let (_bech32_hrp, address) = Address::try_from_bech32(&address_and_nft_id.address)?;
             // Find nft output from the inputs
@@ -87,6 +88,7 @@ impl AccountHandle {
                 return Err(crate::Error::NftNotFoundInUnspentOutputs);
             };
         }
+
         let options = match options {
             Some(mut options) => {
                 options.custom_inputs.replace(custom_inputs);
@@ -97,6 +99,7 @@ impl AccountHandle {
                 ..Default::default()
             }),
         };
+
         self.send(outputs, options).await
     }
 }

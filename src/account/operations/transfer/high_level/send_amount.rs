@@ -44,6 +44,7 @@ impl AccountHandle {
         options: Option<TransferOptions>,
     ) -> crate::Result<TransferResult> {
         let mut outputs = Vec::new();
+
         for address_with_amount in addresses_with_amount {
             outputs.push(
                 BasicOutputBuilder::new_with_amount(address_with_amount.amount)?
@@ -53,6 +54,7 @@ impl AccountHandle {
                     .finish_output()?,
             )
         }
+
         self.send(outputs, options).await
     }
 }

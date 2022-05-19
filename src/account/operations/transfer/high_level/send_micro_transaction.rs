@@ -75,6 +75,7 @@ impl AccountHandle {
         let expiration_time = local_time as u32 + DEFAULT_EXPIRATION_TIME;
 
         let mut outputs = Vec::new();
+
         for address_with_amount in addresses_with_micro_amount {
             let (_bech32_hrp, address) = Address::try_from_bech32(&address_with_amount.address)?;
             // get minimum required amount for such an output, so we don't lock more than required
@@ -104,6 +105,7 @@ impl AccountHandle {
                     .finish_output()?,
             )
         }
+
         self.send(outputs, options).await
     }
 }

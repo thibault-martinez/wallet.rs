@@ -59,10 +59,9 @@ impl AccountHandle {
     ) -> crate::Result<TransferResult> {
         log::debug!("[TRANSFER] mint_nfts");
         let byte_cost_config = self.client.get_byte_cost_config().await?;
-
         let account_addresses = self.list_addresses().await?;
-
         let mut outputs = Vec::new();
+
         for nft_options in nfts_options {
             let address = match nft_options.address {
                 Some(address) => Address::try_from_bech32(&address)?.1,
@@ -75,30 +74,26 @@ impl AccountHandle {
                         .inner
                 }
             };
-            let immutable_metadata = if let Some(immutable_metadata) = nft_options.immutable_metadata {
-                Some(FeatureBlock::Metadata(MetadataFeatureBlock::new(immutable_metadata)?))
-            } else {
-                None
-            };
-            let metadata = if let Some(metadata) = nft_options.metadata {
-                Some(FeatureBlock::Metadata(MetadataFeatureBlock::new(metadata)?))
-            } else {
-                None
-            };
 
             // NftId needs to be set to 0 for the creation
             let mut nft_builder =
                 NftOutputBuilder::new_with_minimum_storage_deposit(byte_cost_config.clone(), NftId::null())?
                     // Address which will own the nft
                     .add_unlock_condition(UnlockCondition::Address(AddressUnlockCondition::new(address)));
-            if let Some(immutable_metadata) = immutable_metadata {
-                nft_builder = nft_builder.add_immutable_feature_block(immutable_metadata);
+
+            if let Some(immutable_metadata) = nft_options.immutable_metadata {
+                nft_builder = nft_builder.add_immutable_feature_block(FeatureBlock::Metadata(
+                    MetadataFeatureBlock::new(immutable_metadata)?,
+                ));
             }
-            if let Some(metadata) = metadata {
-                nft_builder = nft_builder.add_feature_block(metadata);
+            if let Some(metadata) = nft_options.metadata {
+                nft_builder =
+                    nft_builder.add_feature_block(FeatureBlock::Metadata(MetadataFeatureBlock::new(metadata)?));
             }
+
             outputs.push(nft_builder.finish_output()?);
         }
+
         self.send(outputs, options).await
     }
 }
