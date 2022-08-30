@@ -84,6 +84,11 @@ impl AccountManager {
         let (read_client_options, read_coin_type, read_secret_manager, read_accounts) =
             read_data_from_stronghold_snapshot(&mut new_stronghold).await?;
 
+        println!("{:?}", read_client_options);
+        println!("{:?}", read_coin_type);
+        println!("{:?}", read_secret_manager);
+        println!("{:?}", read_accounts);
+
         // Update AccountManager with read data
         if let Some(read_client_options) = read_client_options {
             *self.client_options.write().await = read_client_options;
