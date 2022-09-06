@@ -17,7 +17,7 @@ use crate::{
 
 impl AccountHandle {
     /// Function to destroy a foundry output with a circulating supply of 0.
-    /// Native tokens in the foundry (minted by other foundries) will be transactioned to the controlling alias
+    /// Native tokens in the foundry (minted by other foundries) will be transacted to the controlling alias
     pub async fn destroy_foundry(
         &self,
         foundry_id: FoundryId,
