@@ -6,7 +6,7 @@ use iota_client::{
     block::{
         address::Address,
         output::{
-            feature::{Feature, MetadataFeature},
+            feature::{Feature, IssuerFeature, MetadataFeature, SenderFeature, TagFeature},
             unlock_condition::{AddressUnlockCondition, UnlockCondition},
             NftId, NftOutputBuilder,
         },
@@ -143,13 +143,37 @@ impl AccountHandle {
                         .inner
                 }
             };
-            let immutable_metadata = if let Some(immutable_metadata) = nft_options.immutable_metadata {
-                Some(Feature::Metadata(MetadataFeature::new(immutable_metadata)?))
+
+            let sender = if let Some(sender) = nft_options.sender {
+                Some(Feature::Sender(SenderFeature::new(
+                    Address::try_from_bech32(&sender)?.1,
+                )))
             } else {
                 None
             };
+
             let metadata = if let Some(metadata) = nft_options.metadata {
                 Some(Feature::Metadata(MetadataFeature::new(metadata)?))
+            } else {
+                None
+            };
+
+            let tag = if let Some(tag) = nft_options.tag {
+                Some(Feature::Tag(TagFeature::new(tag)?))
+            } else {
+                None
+            };
+
+            let issuer = if let Some(issuer) = nft_options.issuer {
+                Some(Feature::Issuer(IssuerFeature::new(
+                    Address::try_from_bech32(&issuer)?.1,
+                )))
+            } else {
+                None
+            };
+
+            let immutable_metadata = if let Some(immutable_metadata) = nft_options.immutable_metadata {
+                Some(Feature::Metadata(MetadataFeature::new(immutable_metadata)?))
             } else {
                 None
             };
@@ -159,12 +183,22 @@ impl AccountHandle {
                 NftOutputBuilder::new_with_minimum_storage_deposit(rent_structure.clone(), NftId::null())?
                     // Address which will own the nft
                     .add_unlock_condition(UnlockCondition::Address(AddressUnlockCondition::new(address)));
-            if let Some(immutable_metadata) = immutable_metadata {
-                nft_builder = nft_builder.add_immutable_feature(immutable_metadata);
+            if let Some(sender) = sender {
+                nft_builder = nft_builder.add_feature(sender);
             }
             if let Some(metadata) = metadata {
                 nft_builder = nft_builder.add_feature(metadata);
             }
+            if let Some(tag) = tag {
+                nft_builder = nft_builder.add_feature(tag);
+            }
+            if let Some(issuer) = issuer {
+                nft_builder = nft_builder.add_feature(issuer);
+            }
+            if let Some(immutable_metadata) = immutable_metadata {
+                nft_builder = nft_builder.add_immutable_feature(immutable_metadata);
+            }
+
             outputs.push(nft_builder.finish_output()?);
         }
 
