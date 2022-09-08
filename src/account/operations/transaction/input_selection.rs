@@ -29,6 +29,7 @@ impl AccountHandle {
         allow_burning: bool,
     ) -> crate::Result<SelectedTransactionData> {
         log::debug!("[TRANSACTION] select_inputs");
+        println!("select_inputs");
         // lock so the same inputs can't be selected in multiple transactions
         let mut account = self.write().await;
         #[cfg(feature = "events")]
@@ -52,6 +53,7 @@ impl AccountHandle {
                 }
             }
 
+            println!("try_select_inputs");
             let selected_transaction_data = try_select_inputs(
                 custom_inputs,
                 outputs,
@@ -66,8 +68,11 @@ impl AccountHandle {
             for output in &selected_transaction_data.inputs {
                 account.locked_outputs.insert(output.output_id()?);
             }
+
             return Ok(selected_transaction_data);
         }
+
+        // println!("{:?}", account.unspent_outputs.values());
 
         // Filter inputs to not include inputs that require additional outputs for storage deposit return or could be
         // still locked
@@ -80,6 +85,8 @@ impl AccountHandle {
             &outputs,
             &account.locked_outputs,
         )?;
+
+        // println!("{:?}", available_outputs_signing_data);
 
         let selected_transaction_data = match try_select_inputs(
             available_outputs_signing_data,
@@ -189,7 +196,7 @@ fn filter_inputs(
             .unlock_conditions()
             .expect("Output needs to have unlock_conditions");
 
-        // If still timelocked, don't include it
+        // If still time locked, don't include it
         if unlock_conditions.is_time_locked(current_time) {
             continue;
         }

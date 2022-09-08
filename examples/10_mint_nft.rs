@@ -8,18 +8,32 @@
 use std::env;
 
 use dotenv::dotenv;
+use fern_logger::{LoggerConfigBuilder, LoggerOutputConfigBuilder};
 use iota_wallet::{
     account_manager::AccountManager,
-    iota_client::block::output::{
-        feature::{IssuerFeature, SenderFeature},
-        unlock_condition::AddressUnlockCondition,
-        Feature, NftId, NftOutputBuilder, UnlockCondition,
+    iota_client::block::{
+        address::Address,
+        output::{
+            feature::{IssuerFeature, SenderFeature},
+            unlock_condition::AddressUnlockCondition,
+            Feature, NftId, NftOutputBuilder, UnlockCondition,
+        },
     },
     NftOptions, Result,
 };
+use log::LevelFilter;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let stdout = LoggerOutputConfigBuilder::default()
+        .name("stdout")
+        .level_filter(LevelFilter::Debug)
+        .target_exclusions(&["rustls"])
+        .color_enabled(true);
+    let config = LoggerConfigBuilder::default().with_output(stdout).finish();
+
+    fern_logger::logger_init(config).unwrap();
+
     // This example uses dotenv, which is not safe for use in production
     dotenv().ok();
 
@@ -38,43 +52,53 @@ async fn main() -> Result<()> {
 
     let nft_options = vec![NftOptions {
         address: Some("rms1qpszqzadsym6wpppd6z037dvlejmjuke7s24hm95s9fg9vpua7vluaw60xu".to_string()),
-        sender: None,
+        sender: Some("rms1qpllaj0pyveqfkwxmnngz2c488hfdtmfrj3wfkgxtk4gtyrax0jaxzt70zy".to_string()),
         metadata: Some(b"some NFT metadata".to_vec()),
         tag: Some(b"some NFT tag".to_vec()),
-        issuer: None,
+        issuer: Some("rms1qpllaj0pyveqfkwxmnngz2c488hfdtmfrj3wfkgxtk4gtyrax0jaxzt70zy".to_string()),
         immutable_metadata: Some(b"some NFT immutable metadata".to_vec()),
     }];
 
     let transaction = account.mint_nfts(nft_options, None).await?;
 
+    println!("Transaction: {}.", transaction.transaction_id,);
     println!(
-        "Transaction: {} Block sent: {}/api/core/v2/blocks/{}",
-        transaction.transaction_id,
+        "Block sent: {}/api/core/v2/blocks/{}.",
         &env::var("NODE_URL").unwrap(),
         transaction.block_id.expect("No block created yet")
     );
 
-    // Build nft output manually
-    let sender_address = account.list_addresses().await?[0].address().clone();
-    let outputs = vec![
-        // address of the owner of the NFT
-        NftOutputBuilder::new_with_amount(1_000_000, NftId::null())?
-            .add_unlock_condition(UnlockCondition::Address(AddressUnlockCondition::new(
-                *sender_address.as_ref(),
-            )))
-            .add_feature(Feature::Sender(SenderFeature::new(*sender_address.as_ref())))
-            .add_immutable_feature(Feature::Issuer(IssuerFeature::new(*sender_address.as_ref())))
-            .finish_output()?,
-    ];
-
-    let transaction = account.send(outputs, None).await?;
-
     println!(
-        "Transaction: {} Block sent: {}/api/core/v2/blocks/{}",
-        transaction.transaction_id,
-        &env::var("NODE_URL").unwrap(),
-        transaction.block_id.expect("No block created yet")
+        "{:?}",
+        account
+            .list_addresses()
+            .await?
+            .iter()
+            .map(|a| a.address().to_bech32())
+            .collect::<Vec<_>>()
     );
+
+    // // Build nft output manually
+    // let sender_address = account.list_addresses().await?[0].address().clone();
+    // let outputs = vec![
+    //     // address of the owner of the NFT
+    //     NftOutputBuilder::new_with_amount(1_000_000, NftId::null())?
+    //         .add_unlock_condition(UnlockCondition::Address(AddressUnlockCondition::new(
+    //             *sender_address.as_ref(),
+    //         )))
+    //         .add_feature(Feature::Sender(SenderFeature::new(*sender_address.as_ref())))
+    //         .add_immutable_feature(Feature::Issuer(IssuerFeature::new(*sender_address.as_ref())))
+    //         .finish_output()?,
+    // ];
+
+    // let transaction = account.send(outputs, None).await?;
+
+    // println!(
+    //     "Transaction: {} Block sent: {}/api/core/v2/blocks/{}",
+    //     transaction.transaction_id,
+    //     &env::var("NODE_URL").unwrap(),
+    //     transaction.block_id.expect("No block created yet")
+    // );
 
     Ok(())
 }

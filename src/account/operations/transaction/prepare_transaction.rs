@@ -27,6 +27,7 @@ impl AccountHandle {
         outputs: Vec<Output>,
         options: Option<TransactionOptions>,
     ) -> crate::Result<PreparedTransactionData> {
+        println!("prepare_transaction");
         log::debug!("[TRANSACTION] prepare_transaction");
         let prepare_transaction_start_time = Instant::now();
         let rent_structure = self.client.get_rent_structure().await?;
@@ -43,8 +44,9 @@ impl AccountHandle {
             )));
         }
 
+        println!("custom_inputs");
         let custom_inputs: Option<Vec<InputSigningData>> = {
-            if let Some(options) = options.clone() {
+            if let Some(options) = &options {
                 // validate inputs amount
                 if let Some(inputs) = &options.custom_inputs {
                     if !INPUT_COUNT_RANGE.contains(&(inputs.len() as u16)) {
@@ -78,6 +80,10 @@ impl AccountHandle {
             }
         };
 
+        println!("{:?}", custom_inputs);
+
+        println!("remainder_address");
+
         let remainder_address = match &options {
             Some(options) => {
                 match &options.remainder_value_strategy {
@@ -109,6 +115,8 @@ impl AccountHandle {
 
         let allow_burning = options.as_ref().map_or(false, |option| option.allow_burning);
 
+        println!("selected_transaction_data: {}", custom_inputs.is_some());
+
         let selected_transaction_data = self
             .select_inputs(
                 outputs,
@@ -118,6 +126,8 @@ impl AccountHandle {
                 allow_burning,
             )
             .await?;
+
+        println!("prepared_transaction_data");
 
         let prepared_transaction_data = match self
             .build_transaction_essence(selected_transaction_data.clone(), options)
