@@ -15,13 +15,15 @@ use iota_client::{
     block::{
         output::{
             dto::{OutputBuilderAmountDto, OutputDto},
-            AliasId, AliasOutput, BasicOutput, FoundryOutput, NativeToken, NftId, NftOutput, Output, Rent, TokenId,
+            AliasId, AliasOutput, BasicOutput, FoundryOutput, NftId, NftOutput, Output, Rent, TokenId,
         },
         payload::transaction::dto::TransactionPayloadDto,
+        DtoError,
     },
     constants::SHIMMER_TESTNET_BECH32_HRP,
     utils, Client, NodeInfoWrapper,
 };
+use primitive_types::U256;
 use tokio::sync::mpsc::UnboundedSender;
 use zeroize::Zeroize;
 
@@ -43,7 +45,8 @@ use crate::{
         response::Response,
         AddressWithUnspentOutputsDto,
     },
-    AddressWithAmount, AddressWithMicroAmount, NativeTokenOptions, NftOptions, Result,
+    AddressWithAmount, AddressWithMicroAmount, IncreaseNativeTokenSupplyOptions, NativeTokenOptions, NftOptions,
+    Result,
 };
 
 fn panic_to_response_message(panic: Box<dyn Any>) -> Response {
@@ -429,11 +432,18 @@ impl WalletMessageHandler {
 
                 Ok(Response::Output(OutputDto::from(&output)))
             }
-            AccountMethod::BurnNativeToken { native_token, options } => {
+            AccountMethod::BurnNativeToken {
+                token_id,
+                burn_amount,
+                options,
+            } => {
                 convert_async_panics(|| async {
-                    let native_token = NativeToken::try_from(&native_token)?;
                     let transaction = account_handle
-                        .burn_native_token((*native_token.token_id(), *native_token.amount()), options)
+                        .burn_native_token(
+                            TokenId::try_from(&token_id)?,
+                            U256::try_from(&burn_amount).map_err(|_| DtoError::InvalidField("burn_amount"))?,
+                            options,
+                        )
                         .await?;
                     Ok(Response::SentTransaction(TransactionDto::from(&transaction)))
                 })
@@ -451,12 +461,10 @@ impl WalletMessageHandler {
                 output_consolidation_threshold,
             } => {
                 convert_async_panics(|| async {
-                    let transactions = account_handle
+                    let transaction = account_handle
                         .consolidate_outputs(force, output_consolidation_threshold)
                         .await?;
-                    Ok(Response::SentTransactions(
-                        transactions.iter().map(TransactionDto::from).collect(),
-                    ))
+                    Ok(Response::SentTransaction(TransactionDto::from(&transaction)))
                 })
                 .await
             }
@@ -523,12 +531,12 @@ impl WalletMessageHandler {
                     addresses.iter().map(AddressWithUnspentOutputsDto::from).collect(),
                 ))
             }
-            AccountMethod::ListOutputs => {
-                let outputs = account_handle.list_outputs().await?;
+            AccountMethod::ListOutputs { filter_options } => {
+                let outputs = account_handle.list_outputs(filter_options).await?;
                 Ok(Response::OutputsData(outputs.iter().map(OutputDataDto::from).collect()))
             }
-            AccountMethod::ListUnspentOutputs => {
-                let outputs = account_handle.list_unspent_outputs().await?;
+            AccountMethod::ListUnspentOutputs { filter_options } => {
+                let outputs = account_handle.list_unspent_outputs(filter_options).await?;
                 Ok(Response::OutputsData(outputs.iter().map(OutputDataDto::from).collect()))
             }
             AccountMethod::ListTransactions => {
@@ -543,13 +551,47 @@ impl WalletMessageHandler {
                     transactions.iter().map(TransactionDto::from).collect(),
                 ))
             }
-            AccountMethod::MeltNativeToken { native_token, options } => {
+            AccountMethod::DecreaseNativeTokenSupply {
+                token_id,
+                melt_amount,
+                options,
+            } => {
                 convert_async_panics(|| async {
-                    let native_token = NativeToken::try_from(&native_token)?;
                     let transaction = account_handle
-                        .melt_native_token((*native_token.token_id(), *native_token.amount()), options)
+                        .decrease_native_token_supply(
+                            TokenId::try_from(&token_id)?,
+                            U256::try_from(&melt_amount).map_err(|_| DtoError::InvalidField("melt_amount"))?,
+                            options,
+                        )
                         .await?;
                     Ok(Response::SentTransaction(TransactionDto::from(&transaction)))
+                })
+                .await
+            }
+            AccountMethod::IncreaseNativeTokenSupply {
+                token_id,
+                mint_amount,
+                increase_native_token_supply_options,
+                options,
+            } => {
+                convert_async_panics(|| async {
+                    let increase_native_token_supply_options = match increase_native_token_supply_options {
+                        Some(native_token_options) => {
+                            Some(IncreaseNativeTokenSupplyOptions::try_from(&native_token_options)?)
+                        }
+                        None => None,
+                    };
+                    let transaction = account_handle
+                        .increase_native_token_supply(
+                            TokenId::try_from(&token_id)?,
+                            U256::try_from(&mint_amount).map_err(|_| DtoError::InvalidField("mint_amount"))?,
+                            increase_native_token_supply_options,
+                            options.clone(),
+                        )
+                        .await?;
+                    Ok(Response::MintTokenTransaction(MintTokenTransactionDto::from(
+                        &transaction,
+                    )))
                 })
                 .await
             }
@@ -753,21 +795,10 @@ impl WalletMessageHandler {
                 })
                 .await
             }
-            AccountMethod::TryClaimOutputs { outputs_to_claim } => {
-                convert_async_panics(|| async {
-                    let transactions = account_handle.try_claim_outputs(outputs_to_claim).await?;
-                    Ok(Response::SentTransactions(
-                        transactions.iter().map(TransactionDto::from).collect(),
-                    ))
-                })
-                .await
-            }
             AccountMethod::ClaimOutputs { output_ids_to_claim } => {
                 convert_async_panics(|| async {
-                    let transactions = account_handle.claim_outputs(output_ids_to_claim.to_vec()).await?;
-                    Ok(Response::SentTransactions(
-                        transactions.iter().map(TransactionDto::from).collect(),
-                    ))
+                    let transaction = account_handle.claim_outputs(output_ids_to_claim.to_vec()).await?;
+                    Ok(Response::SentTransaction(TransactionDto::from(&transaction)))
                 })
                 .await
             }

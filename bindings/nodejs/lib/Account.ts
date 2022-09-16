@@ -7,6 +7,7 @@ import type {
     Address,
     AccountSyncOptions,
     AccountMeta,
+    FilterOptions,
     OutputsToClaim,
     OutputData,
     Transaction,
@@ -19,6 +20,7 @@ import type {
     AddressNftId,
     AddressGenerationOptions,
     AddressWithUnspentOutputs,
+    IncreaseNativeTokenSupplyOptions,
     MintTokenTransaction,
     PreparedTransactionData,
     OutputOptions,
@@ -119,13 +121,15 @@ export class Account {
      * Burn native tokens. This doesn't require the foundry output which minted them, but will not increase
      * the foundries `melted_tokens` field, which makes it impossible to destroy the foundry output. Therefore it's
      * recommended to use melting, if the foundry output is available.
-     * @param nativeToken The Native Token with amount.
+     * @param tokenId The native token id.
+     * @param burnAmount The to be burned amount.
      * @param transactionOptions The options to define a `RemainderValueStrategy`
      * or custom inputs.
      * @returns The transaction.
      */
     async burnNativeToken(
-        nativeToken: [string, HexEncodedAmount],
+        tokenId: string,
+        burnAmount: HexEncodedAmount,
         transactionOptions?: TransactionOptions,
     ): Promise<Transaction> {
         const resp = await this.messageHandler.callAccountMethod(
@@ -133,7 +137,8 @@ export class Account {
             {
                 name: 'BurnNativeToken',
                 data: {
-                    nativeToken,
+                    tokenId,
+                    burnAmount,
                     options: transactionOptions,
                 },
             },
@@ -171,9 +176,9 @@ export class Account {
      * Claim basic or nft outputs that have additional unlock conditions
      * to their `AddressUnlockCondition` from the account.
      * @param outputIds The outputs to claim.
-     * @returns The resulting transactions.
+     * @returns The resulting transaction.
      */
-    async claimOutputs(outputIds: string[]): Promise<Transaction[]> {
+    async claimOutputs(outputIds: string[]): Promise<Transaction> {
         const resp = await this.messageHandler.callAccountMethod(
             this.meta.index,
             {
@@ -188,16 +193,16 @@ export class Account {
 
     /**
      * Consolidate basic outputs with only an `AddressUnlockCondition` from an account
-     * by sending them to the same address again if the output amount is greater or
+     * by sending them to an own address again if the output amount is greater or
      * equal to the output consolidation threshold.
      * @param force Force consolidation on addresses where the threshold isn't met.
      * @param outputConsolidationThreshold A default threshold is used if this is omitted.
-     * @returns The consolidation transactions.
+     * @returns The consolidation transaction.
      */
     async consolidateOutputs(
         force: boolean,
         outputConsolidationThreshold?: number,
-    ): Promise<Transaction[]> {
+    ): Promise<Transaction> {
         const resp = await this.messageHandler.callAccountMethod(
             this.meta.index,
             {
@@ -429,13 +434,15 @@ export class Account {
 
     /**
      * List all outputs of the account.
+     * @param filterOptions Options to filter the to be returned outputs.
      * @returns The outputs with metadata.
      */
-    async listOutputs(): Promise<OutputData[]> {
+    async listOutputs(filterOptions?: FilterOptions): Promise<OutputData[]> {
         const response = await this.messageHandler.callAccountMethod(
             this.meta.index,
             {
                 name: 'ListOutputs',
+                data: { filterOptions },
             },
         );
 
@@ -473,13 +480,17 @@ export class Account {
 
     /**
      * List all the unspent outputs of the account.
+     * @param filterOptions Options to filter the to be returned outputs.
      * @returns The outputs with metadata.
      */
-    async listUnspentOutputs(): Promise<OutputData[]> {
+    async listUnspentOutputs(
+        filterOptions?: FilterOptions,
+    ): Promise<OutputData[]> {
         const response = await this.messageHandler.callAccountMethod(
             this.meta.index,
             {
                 name: 'ListUnspentOutputs',
+                data: { filterOptions },
             },
         );
 
@@ -489,21 +500,24 @@ export class Account {
     /**
      * Melt native tokens. This happens with the foundry output which minted them, by increasing it's
      * `melted_tokens` field.
-     * @param nativeToken The Native Token with amount.
+     * @param tokenId The native token id.
+     * @param meltAmount To be melted amount.
      * @param transactionOptions The options to define a `RemainderValueStrategy`
      * or custom inputs.
      * @returns The transaction.
      */
-    async meltNativeToken(
-        nativeToken: [string, HexEncodedAmount],
+    async decreaseNativeTokenSupply(
+        tokenId: string,
+        meltAmount: HexEncodedAmount,
         transactionOptions?: TransactionOptions,
     ): Promise<Transaction> {
         const resp = await this.messageHandler.callAccountMethod(
             this.meta.index,
             {
-                name: 'MeltNativeToken',
+                name: 'DecreaseNativeTokenSupply',
                 data: {
-                    nativeToken,
+                    tokenId,
+                    meltAmount,
                     options: transactionOptions,
                 },
             },
@@ -526,6 +540,37 @@ export class Account {
                 },
             },
         );
+        return JSON.parse(response).payload;
+    }
+
+    /**
+     * Mint more native tokens.
+     * @param tokenId The native token id.
+     * @param mintAmount To be minted amount.
+     * @param increaseNativeTokenSupplyOptions Options for minting more tokens.
+     * @param transactionOptions The options to define a `RemainderValueStrategy`
+     * or custom inputs.
+     * @returns The minting transaction and the token ID.
+     */
+    async increaseNativeTokenSupply(
+        tokenId: string,
+        mintAmount: HexEncodedAmount,
+        increaseNativeTokenSupplyOptions?: IncreaseNativeTokenSupplyOptions,
+        transactionOptions?: TransactionOptions,
+    ): Promise<MintTokenTransaction> {
+        const response = await this.messageHandler.callAccountMethod(
+            this.meta.index,
+            {
+                name: 'IncreaseNativeTokenSupply',
+                data: {
+                    tokenId,
+                    mintAmount,
+                    increaseNativeTokenSupplyOptions,
+                    options: transactionOptions,
+                },
+            },
+        );
+
         return JSON.parse(response).payload;
     }
 
@@ -848,28 +893,5 @@ export class Account {
             },
         );
         return JSON.parse(resp).payload;
-    }
-
-    /**
-     * Try to claim basic outputs that have additional unlock conditions to
-     * their `AddressUnlockCondition` and send them to the first address of the
-     * account.
-     * @param outputsToClaim Outputs to try to claim.
-     * @returns The resulting transactions.
-     */
-    async tryClaimOutputs(
-        outputsToClaim: OutputsToClaim,
-    ): Promise<Transaction[]> {
-        const response = await this.messageHandler.callAccountMethod(
-            this.meta.index,
-            {
-                name: 'TryClaimOutputs',
-                data: {
-                    outputsToClaim,
-                },
-            },
-        );
-
-        return JSON.parse(response).payload;
     }
 }

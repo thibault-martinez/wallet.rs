@@ -65,7 +65,7 @@ async fn main() -> Result<()> {
     println!(
         "Block sent: {}/api/core/v2/blocks/{}.",
         &env::var("NODE_URL").unwrap(),
-        transaction.block_id.expect("No block created yet")
+        transaction.block_id.expect("no block created yet")
     );
 
     println!(

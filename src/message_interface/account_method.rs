@@ -4,6 +4,7 @@
 use iota_client::{
     api::{PreparedTransactionDataDto, SignedTransactionDataDto},
     block::{
+        dto::U256Dto,
         output::{
             dto::{AliasIdDto, NativeTokenDto, NftIdDto, OutputDto, TokenIdDto, TokenSchemeDto},
             feature::dto::FeatureDto,
@@ -16,14 +17,20 @@ use iota_client::{
 use serde::Deserialize;
 
 use crate::{
-    account::operations::{
-        address_generation::AddressGenerationOptions,
-        output_claiming::OutputsToClaim,
-        syncing::SyncOptions,
-        transaction::{
-            high_level::minting::{mint_native_token::NativeTokenOptionsDto, mint_nfts::NftOptionsDto},
-            prepare_output::OutputOptionsDto,
-            TransactionOptions,
+    account::{
+        handle::FilterOptions,
+        operations::{
+            address_generation::AddressGenerationOptions,
+            output_claiming::OutputsToClaim,
+            syncing::SyncOptions,
+            transaction::{
+                high_level::minting::{
+                    increase_native_token_supply::IncreaseNativeTokenSupplyOptionsDto,
+                    mint_native_token::NativeTokenOptionsDto, mint_nfts::NftOptionsDto,
+                },
+                prepare_output::OutputOptionsDto,
+                TransactionOptions,
+            },
         },
     },
     message_interface::dtos::{AddressWithAmountDto, AddressWithMicroAmountDto},
@@ -107,8 +114,12 @@ pub enum AccountMethod {
     /// recommended to use melting, if the foundry output is available.
     /// Expected response: [`SentTransaction`](crate::message_interface::Response::SentTransaction)
     BurnNativeToken {
-        #[serde(rename = "nativeToken")]
-        native_token: NativeTokenDto,
+        /// Native token id
+        #[serde(rename = "tokenId")]
+        token_id: TokenIdDto,
+        /// To be burned amount
+        #[serde(rename = "burnAmount")]
+        burn_amount: U256Dto,
         options: Option<TransactionOptions>,
     },
     /// Burn an nft output. Outputs controlled by it will be swept before if they don't have a storage
@@ -121,7 +132,7 @@ pub enum AccountMethod {
         options: Option<TransactionOptions>,
     },
     /// Consolidate outputs.
-    /// Expected response: [`SentTransactions`](crate::message_interface::Response::SentTransactions)
+    /// Expected response: [`SentTransaction`](crate::message_interface::Response::SentTransaction)
     ConsolidateOutputs {
         force: bool,
         #[serde(rename = "outputConsolidationThreshold")]
@@ -190,10 +201,16 @@ pub enum AccountMethod {
     ListAddressesWithUnspentOutputs,
     /// Returns all outputs of the account
     /// Expected response: [`OutputsData`](crate::message_interface::Response::OutputsData)
-    ListOutputs,
+    ListOutputs {
+        #[serde(rename = "filterOptions")]
+        filter_options: Option<FilterOptions>,
+    },
     /// Returns all unspent outputs of the account
     /// Expected response: [`OutputsData`](crate::message_interface::Response::OutputsData)
-    ListUnspentOutputs,
+    ListUnspentOutputs {
+        #[serde(rename = "filterOptions")]
+        filter_options: Option<FilterOptions>,
+    },
     /// Returns all transaction of the account
     /// Expected response: [`Transactions`](crate::message_interface::Response::Transactions)
     ListTransactions,
@@ -203,15 +220,32 @@ pub enum AccountMethod {
     /// Melt native tokens. This happens with the foundry output which minted them, by increasing it's
     /// `melted_tokens` field.
     /// Expected response: [`SentTransaction`](crate::message_interface::Response::SentTransaction)
-    MeltNativeToken {
-        #[serde(rename = "nativeToken")]
-        native_token: NativeTokenDto,
+    DecreaseNativeTokenSupply {
+        /// Native token id
+        #[serde(rename = "tokenId")]
+        token_id: TokenIdDto,
+        /// To be melted amount
+        #[serde(rename = "meltAmount")]
+        melt_amount: U256Dto,
         options: Option<TransactionOptions>,
     },
     /// Calculate the minimum required storage deposit for an output.
     /// Expected response:
     /// [`MinimumRequiredStorageDeposit`](crate::message_interface::Response::MinimumRequiredStorageDeposit)
     MinimumRequiredStorageDeposit { output: OutputDto },
+    /// Mint more native token.
+    /// Expected response: [`MintTokenTransaction`](crate::message_interface::Response::MintTokenTransaction)
+    IncreaseNativeTokenSupply {
+        /// Native token id
+        #[serde(rename = "tokenId")]
+        token_id: TokenIdDto,
+        /// To be minted amount
+        #[serde(rename = "mintAmount")]
+        mint_amount: U256Dto,
+        #[serde(rename = "increaseNativeTokenSupplyOptions")]
+        increase_native_token_supply_options: Option<IncreaseNativeTokenSupplyOptionsDto>,
+        options: Option<TransactionOptions>,
+    },
     /// Mint native token.
     /// Expected response: [`MintTokenTransaction`](crate::message_interface::Response::MintTokenTransaction)
     MintNativeToken {
@@ -304,14 +338,8 @@ pub enum AccountMethod {
         #[serde(rename = "signedTransactionData")]
         signed_transaction_data: SignedTransactionDataDto,
     },
-    /// Try to claim outputs.
-    /// Expected response: [`SentTransactions`](crate::message_interface::Response::SentTransactions)
-    TryClaimOutputs {
-        #[serde(rename = "outputsToClaim")]
-        outputs_to_claim: OutputsToClaim,
-    },
     /// Claim outputs.
-    /// Expected response: [`SentTransactions`](crate::message_interface::Response::SentTransactions)
+    /// Expected response: [`SentTransaction`](crate::message_interface::Response::SentTransaction)
     ClaimOutputs {
         #[serde(rename = "outputIdsToClaim")]
         output_ids_to_claim: Vec<OutputId>,

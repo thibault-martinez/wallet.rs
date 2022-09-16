@@ -30,8 +30,9 @@ The Account class.
 - [listPendingTransactions](Account.md#listpendingtransactions)
 - [listTransactions](Account.md#listtransactions)
 - [listUnspentOutputs](Account.md#listunspentoutputs)
-- [meltNativeToken](Account.md#meltnativetoken)
+- [decreaseNativeTokenSupply](Account.md#decreasenativetokensupply)
 - [minimumRequiredStorageDeposit](Account.md#minimumrequiredstoragedeposit)
+- [increaseNativeTokenSupply](Account.md#increasenativetokensupply)
 - [mintNativeToken](Account.md#mintnativetoken)
 - [mintNfts](Account.md#mintnfts)
 - [prepareOutput](Account.md#prepareoutput)
@@ -45,7 +46,6 @@ The Account class.
 - [signTransactionEssence](Account.md#signtransactionessence)
 - [submitAndStoreTransaction](Account.md#submitandstoretransaction)
 - [sync](Account.md#sync)
-- [tryClaimOutputs](Account.md#tryclaimoutputs)
 
 ## Methods
 
@@ -131,7 +131,7 @@ ___
 
 ### burnNativeToken
 
-▸ **burnNativeToken**(`nativeToken`, `transactionOptions?`): `Promise`<[`Transaction`](../interfaces/Transaction.md)\>
+▸ **burnNativeToken**(`tokenId`, `burnAmount`, `transactionOptions?`): `Promise`<[`Transaction`](../interfaces/Transaction.md)\>
 
 Burn native tokens. This doesn't require the foundry output which minted them, but will not increase
 the foundries `melted_tokens` field, which makes it impossible to destroy the foundry output. Therefore it's
@@ -141,7 +141,8 @@ recommended to use melting, if the foundry output is available.
 
 | Name | Type | Description |
 | :------ | :------ | :------ |
-| `nativeToken` | [`string`, `string`] | The Native Token with amount. |
+| `tokenId` | `string` | The native token id. |
+| `burnAmount` | `string` | The to be burned amount. |
 | `transactionOptions?` | [`TransactionOptions`](../interfaces/TransactionOptions.md) | The options to define a `RemainderValueStrategy` or custom inputs. |
 
 #### Returns
@@ -177,7 +178,7 @@ ___
 
 ### claimOutputs
 
-▸ **claimOutputs**(`outputIds`): `Promise`<[`Transaction`](../interfaces/Transaction.md)[]\>
+▸ **claimOutputs**(`outputIds`): `Promise`<[`Transaction`](../interfaces/Transaction.md)\>
 
 Claim basic or nft outputs that have additional unlock conditions
 to their `AddressUnlockCondition` from the account.
@@ -192,16 +193,16 @@ to their `AddressUnlockCondition` from the account.
 
 `Promise`<[`Transaction`](../interfaces/Transaction.md)[]\>
 
-The resulting transactions.
+The resulting transaction.
 
 ___
 
 ### consolidateOutputs
 
-▸ **consolidateOutputs**(`force`, `outputConsolidationThreshold?`): `Promise`<[`Transaction`](../interfaces/Transaction.md)[]\>
+▸ **consolidateOutputs**(`force`, `outputConsolidationThreshold?`): `Promise`<[`Transaction`](../interfaces/Transaction.md)\>
 
 Consolidate basic outputs with only an `AddressUnlockCondition` from an account
-by sending them to the same address again if the output amount is greater or
+by sending them to an own address again if the output amount is greater or
 equal to the output consolidation threshold.
 
 #### Parameters
@@ -213,9 +214,9 @@ equal to the output consolidation threshold.
 
 #### Returns
 
-`Promise`<[`Transaction`](../interfaces/Transaction.md)[]\>
+`Promise`<[`Transaction`](../interfaces/Transaction.md)\>
 
-The consolidation transactions.
+The consolidation transaction.
 
 ___
 
@@ -444,9 +445,15 @@ ___
 
 ### listOutputs
 
-▸ **listOutputs**(): `Promise`<[`OutputData`](../interfaces/OutputData.md)[]\>
+▸ **listOutputs**(`filterOptions?`): `Promise`<[`OutputData`](../interfaces/OutputData.md)[]\>
 
 List all outputs of the account.
+
+#### Parameters
+
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `filterOptions?` | [`FilterOptions`](../interfaces/FilterOptions.md) | Options to filter the to be returned outputs. |
 
 #### Returns
 
@@ -486,9 +493,15 @@ ___
 
 ### listUnspentOutputs
 
-▸ **listUnspentOutputs**(): `Promise`<[`OutputData`](../interfaces/OutputData.md)[]\>
+▸ **listUnspentOutputs**(`filterOptions?`): `Promise`<[`OutputData`](../interfaces/OutputData.md)[]\>
 
 List all the unspent outputs of the account.
+
+#### Parameters
+
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `filterOptions?` | [`FilterOptions`](../interfaces/FilterOptions.md) | Options to filter the to be returned outputs. |
 
 #### Returns
 
@@ -498,9 +511,9 @@ The outputs with metadata.
 
 ___
 
-### meltNativeToken
+### decreaseNativeTokenSupply
 
-▸ **meltNativeToken**(`nativeToken`, `transactionOptions?`): `Promise`<[`Transaction`](../interfaces/Transaction.md)\>
+▸ **decreaseNativeTokenSupply**(`tokenId`, `meltAmount`, `transactionOptions?`): `Promise`<[`Transaction`](../interfaces/Transaction.md)\>
 
 Melt native tokens. This happens with the foundry output which minted them, by increasing it's
 `melted_tokens` field.
@@ -509,7 +522,8 @@ Melt native tokens. This happens with the foundry output which minted them, by i
 
 | Name | Type | Description |
 | :------ | :------ | :------ |
-| `nativeToken` | [`string`, `string`] | The Native Token with amount. |
+| `tokenId` | `string` | The native token id. |
+| `meltAmount` | `string` | To be melted amount. |
 | `transactionOptions?` | [`TransactionOptions`](../interfaces/TransactionOptions.md) | The options to define a `RemainderValueStrategy` or custom inputs. |
 
 #### Returns
@@ -537,6 +551,29 @@ Calculate the minimum required storage deposit for an output.
 `Promise`<`string`\>
 
 The amount.
+
+___
+
+### increaseNativeTokenSupply
+
+▸ **increaseNativeTokenSupply**(`tokenId`, `mintAmount`, `increaseNativeTokenSupplyOptions?`, `transactionOptions?`): `Promise`<[`MintTokenTransaction`](../interfaces/MintTokenTransaction.md)\>
+
+Mint more native tokens.
+
+#### Parameters
+
+| Name | Type | Description |
+| :------ | :------ | :------ |
+| `tokenId` | `string` | The native token id. |
+| `mintAmount` | `string` | To be minted amount. |
+| `increaseNativeTokenSupplyOptions?` | [`IncreaseNativeTokenSupplyOptions`](../interfaces/IncreaseNativeTokenSupplyOptions.md) | Options for minting more tokens. |
+| `transactionOptions?` | [`TransactionOptions`](../interfaces/TransactionOptions.md) | The options to define a `RemainderValueStrategy` or custom inputs. |
+
+#### Returns
+
+`Promise`<[`MintTokenTransaction`](../interfaces/MintTokenTransaction.md)\>
+
+The minting transaction and the token ID.
 
 ___
 
@@ -808,25 +845,3 @@ Will also retry pending transactions if necessary.
 `Promise`<[`AccountBalance`](../interfaces/AccountBalance.md)\>
 
 The account balance.
-
-___
-
-### tryClaimOutputs
-
-▸ **tryClaimOutputs**(`outputsToClaim`): `Promise`<[`Transaction`](../interfaces/Transaction.md)[]\>
-
-Try to claim basic outputs that have additional unlock conditions to
-their `AddressUnlockCondition` and send them to the first address of the
-account.
-
-#### Parameters
-
-| Name | Type | Description |
-| :------ | :------ | :------ |
-| `outputsToClaim` | [`OutputsToClaim`](../enums/OutputsToClaim.md) | Outputs to try to claim. |
-
-#### Returns
-
-`Promise`<[`Transaction`](../interfaces/Transaction.md)[]\>
-
-The resulting transactions.
