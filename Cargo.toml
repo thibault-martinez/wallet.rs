@@ -17,7 +17,7 @@ backtrace = { version = "0.3.66", default-features = false, features = [ "std" ]
 futures = { version = "0.3.24", default-features = false }
 getset = { version = "0.1.2", default-features = false }
 iota-client = { git = "https://github.com/iotaledger/iota.rs", rev = "6b7004fb130fa5765539c9bea707d92c3eb1ff72", default-features = false, features = [ "message_interface", "tls" ] }
-iota-crypto = { version = "0.14.0", default-features = false, features = [ "std", "chacha", "blake2b", "ed25519", "random", "slip10", "bip39", "bip39-en" ] }
+iota-crypto = { version = "0.14.2", default-features = false, features = [ "std", "chacha", "blake2b", "ed25519", "random", "slip10", "bip39", "bip39-en" ] }
 log = { version = "0.4.17", default-features = false }
 packable = { version = "0.6.1", default-features = false, features = [ "serde", "primitive-types" ] }
 prefix-hex = { version = "0.4.0", default-features = false, features = [ "std" ] }
