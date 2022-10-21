@@ -82,9 +82,8 @@ jobs:
     - name: Run wallet tester
       uses: actions-rs/cargo@v1
       with:
-        path: tester
         command: run
-        args: --all-features --release
+        args:  --manifest-path ./tester/Cargo.toml --all-features --release
 
     - name: Tear down private tangle
       uses: './.github/actions/private-tangle/tear-down'
