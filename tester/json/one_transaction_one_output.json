@@ -14,7 +14,7 @@
                     {
                         "simple": {
                             "account": 1,
-                            "amount": 50000
+                            "amount": 500000
                         }
                     }
                 ],
@@ -32,7 +32,7 @@
         {
             "balance": {
                 "account": 1,
-                "amount": 50000
+                "amount": 500000
             }
         }
     ]
