@@ -39,10 +39,8 @@ jobs:
 
     - name: Get current date
       run: echo "CURRENT_DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
-      if: matrix.os == 'macos-latest' || matrix.os == 'ubuntu-latest'
 
-    - name: Install required packages (Ubuntu)
-      if: matrix.os == 'ubuntu-latest'
+    - name: Install required packages
       run: |
         sudo apt-get update
         sudo apt-get install libudev-dev libusb-1.0-0-dev
@@ -79,11 +77,9 @@ jobs:
           ${{ matrix.os }}-stable-cargo-build-target-
 
     - name: Start private tangle
-      if: matrix.os == 'ubuntu-latest'
       uses: './.github/actions/private-tangle/setup'
 
     - name: Run wallet tester
-      timeout-minutes: 60
       uses: actions-rs/cargo@v1
       with:
         path: tester
@@ -91,5 +87,4 @@ jobs:
         args: --all-features --release
 
     - name: Tear down private tangle
-      if: matrix.os == 'ubuntu-latest' && always()
       uses: './.github/actions/private-tangle/tear-down'
