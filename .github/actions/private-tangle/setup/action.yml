@@ -22,8 +22,8 @@ runs:
         jq '.tokenSupply="1813620509061365" | .rentStructure.vByteCost=100' protocol_parameters.json > tmp.json && mv tmp.json protocol_parameters.json
         jq --color-output . protocol_parameters.json
         
-        # Manipulate and print config
-        jq '.restAPI.pow.enabled = $newVal' --argjson newVal true config_private_tangle.json > tmp.$$.json && mv tmp.$$.json config_private_tangle.json
+        # Reduce milestone interval to 1 second
+        jq '.inx.coordinator.interval="1s"' config_private_tangle.json > tmp.json && mv tmp.json config_private_tangle.json
         jq --color-output . config_private_tangle.json
         # Start Tangle
         sudo ./cleanup.sh
