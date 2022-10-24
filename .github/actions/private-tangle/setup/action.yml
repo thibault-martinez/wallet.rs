@@ -5,6 +5,7 @@ runs:
   steps:
     - name: Setup private tangle
       shell: bash
+      uses: mikefarah/yq@master
       run: |
         # TODO: use next lines when a working hornet release is published
         # # Download the private_tangle setup from the hornet repo.
@@ -23,7 +24,7 @@ runs:
         jq --color-output . protocol_parameters.json
         
         # Reduce milestone interval to 1 second
-        jq '.inx.coordinator.interval="1s"' config_private_tangle.json > tmp.json && mv tmp.json config_private_tangle.json
+        yq eval '.services.inx-coordinator.command += "--coordinator.interval=1s"' docker-compose.yml > tmp.yml && mv tmp.yml docker-compose.yml
         jq --color-output . config_private_tangle.json
         # Start Tangle
         sudo ./cleanup.sh
