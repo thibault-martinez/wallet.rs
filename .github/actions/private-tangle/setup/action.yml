@@ -3,9 +3,9 @@ description: 'Setup a private tangle'
 runs:
   using: "composite"
   steps:
+    - uses: mikefarah/yq@master
     - name: Setup private tangle
       shell: bash
-      uses: mikefarah/yq@master
       run: |
         # TODO: use next lines when a working hornet release is published
         # # Download the private_tangle setup from the hornet repo.
