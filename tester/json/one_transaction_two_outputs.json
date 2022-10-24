@@ -1,7 +1,7 @@
 {
     "fixtures": {
         "accounts": [
-            1000000,
+            100000,
             0
         ]
     },
@@ -14,13 +14,13 @@
                     {
                         "simple": {
                             "account": 1,
-                            "amount": 500000
+                            "amount": 50000
                         }
                     },
                     {
                         "simple": {
                             "account": 1,
-                            "amount": 500000
+                            "amount": 50000
                         }
                     }
                 ],
@@ -38,7 +38,7 @@
         {
             "balance": {
                 "account": 1,
-                "amount": 1000000
+                "amount": 100000
             }
         }
     ]
